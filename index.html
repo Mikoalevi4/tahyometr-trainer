@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тренажер тахеометрів SOKKIA SET 630 та CX-55</title>
+<style>
+:root {
+  --bg: #f0f4f8; --surface: #fff; --ink: #1a202c; --muted: #4a5568;
+  --accent: #2b6cb0; --accent-light: #bee3f8; --success: #38a169; --danger: #e53e3e;
+  --radius: 12px;
+  --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; min-height: 100vh; }
+.container { max-width: 1000px; margin: 0 auto; padding: 1rem; }
+header { background: linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%); color: white; padding: 2rem 1rem; text-align: center; box-shadow: var(--shadow-lg); }
+header h1 { font-size: clamp(1.3rem, 4vw, 1.9rem); margin-bottom: 0.5rem; }
+header p { opacity: 0.9; font-size: 0.95rem; }
+nav { background: var(--surface); border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 100; }
+nav ul { display: flex; justify-content: center; gap: 0.5rem; list-style: none; padding: 0.75rem 1rem; flex-wrap: wrap; }
+nav a { color: var(--muted); text-decoration: none; padding: 0.5rem 1rem; border-radius: var(--radius); font-weight: 500; transition: all 0.2s; }
+nav a:hover, nav a.active { background: var(--accent-light); color: var(--accent); }
+.card { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); }
+.card h2 { color: var(--accent); margin-bottom: 1rem; font-size: 1.25rem; }
+.btn { display: inline-block; padding: 0.75rem 1.5rem; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; text-align: center; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: #2c5282; transform: translateY(-1px); }
+.btn-success { background: var(--success); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-option { background: #edf2f7; color: var(--ink); border: 2px solid #e2e8f0; width: 100%; margin-bottom: 0.6rem; text-align: left; font-weight: 500; }
+.btn-option:hover { border-color: var(--accent); background: var(--accent-light); }
+.btn-option.correct { background: #c6f6d5; border-color: var(--success); }
+.btn-option.wrong { background: #fed7d7; border-color: var(--danger); }
+.btn-option:disabled { cursor: default; opacity: 0.9; }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.mode-card { background: var(--surface); border: 2px solid #e2e8f0; border-radius: var(--radius); padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+.mode-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.mode-card h3 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1.1rem; }
+.mode-card p { color: var(--muted); font-size: 0.9rem; }
+.game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+.score-badge { background: var(--accent-light); color: var(--accent); padding: 0.4rem 1rem; border-radius: 20px; font-weight: 700; font-size: 0.9rem; }
+.progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; margin-bottom: 1.5rem; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+
+/* Clickable scheme */
+.scheme-box { position: relative; display: block; width: -moz-fit-content; width: fit-content; max-width: 100%; margin: 0 auto 1.5rem; }
+.scheme-box img { max-width: 100%; height: auto; border-radius: var(--radius); box-shadow: var(--shadow); display: block; margin: 0 auto; }
+.scheme-click-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair; }
+.scheme-marker {
+  position: absolute; width: 28px; height: 28px; margin-left: -14px; margin-top: -14px;
+  border-radius: 50%; border: 3px solid; pointer-events: none; opacity: 0; transform: scale(0); transition: all 0.4s;
+}
+.scheme-marker.show { opacity: 1; transform: scale(1); }
+.scheme-marker.correct { background: rgba(56,161,105,0.25); border-color: var(--success); box-shadow: 0 0 0 4px rgba(56,161,105,0.15); }
+.scheme-marker.wrong { background: rgba(229,62,62,0.25); border-color: var(--danger); box-shadow: 0 0 0 4px rgba(229,62,62,0.15); }
+.scheme-marker.answer { background: rgba(56,161,105,0.25); border-color: var(--success); box-shadow: 0 0 0 4px rgba(56,161,105,0.15); }
+
+.question-box { background: var(--accent-light); border-left: 4px solid var(--accent); padding: 1rem 1.5rem; margin-bottom: 1.5rem; border-radius: 0 var(--radius) var(--radius) 0; }
+.question-box h3 { color: var(--accent); font-size: 1.1rem; }
+.question-box .instrument-tag { display: inline-block; background: var(--accent); color: white; padding: 0.2rem 0.7rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; margin-left: 0.5rem; vertical-align: middle; }
+.feedback { padding: 1rem; border-radius: var(--radius); margin: 1rem 0; font-weight: 600; text-align: center; }
+.feedback.correct { background: #c6f6d5; color: #22543d; }
+.feedback.wrong { background: #fed7d7; color: #742a2a; }
+.results { text-align: center; padding: 1.5rem; }
+.results h2 { color: var(--accent); margin-bottom: 1rem; }
+.big-score { font-size: 3rem; font-weight: 800; color: var(--accent); }
+.instrument-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+.instrument-box { border: 2px solid #e2e8f0; border-radius: var(--radius); padding: 1rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+.instrument-box:hover { border-color: var(--accent); background: var(--accent-light); }
+.instrument-box.selected { border-color: var(--accent); background: var(--accent-light); box-shadow: 0 0 0 3px rgba(43,108,176,0.2); }
+.instrument-box img { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 0.5rem; }
+.instrument-box h4 { color: var(--accent); font-size: 1rem; }
+.parts-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.95rem; }
+.parts-table th, .parts-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+.parts-table th { background: #edf2f7; font-weight: 600; color: var(--accent); }
+.parts-table tr:hover { background: #f7fafc; }
+.hint-text { color: var(--muted); font-size: 0.9rem; text-align: center; margin-bottom: 0.5rem; }
+.click-hint { display: inline-block; background: #fff3cd; color: #856404; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; }
+footer { text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.9rem; border-top: 1px solid #e2e8f0; margin-top: 2rem; }
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+.mt-1 { margin-top: 1rem; }
+.mb-1 { margin-bottom: 1rem; }
+@media (max-width: 600px) {
+  .instrument-compare { grid-template-columns: 1fr; }
+  .game-header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎯 Тренажер «Знайди деталь»</h1>
+  <p>Тахеометри SOKKIA SET 630 та CX-55 — Лабораторна робота №5</p>
+</header>
+
+<nav>
+  <ul>
+    <li><a href="#" onclick="showSection('menu'); return false;" class="active" id="nav-menu">Меню</a></li>
+    <li><a href="#" onclick="showSection('theory'); return false;" id="nav-theory">Теорія</a></li>
+    <li><a href="#" onclick="showSection('reference'); return false;" id="nav-ref">Довідник</a></li>
+  </ul>
+</nav>
+
+<main class="container">
+
+<!-- ===================== МЕНЮ ===================== -->
+<section id="menu" class="section">
+  <div class="card" style="text-align:center;">
+    <h2>Оберіть режим тренування</h2>
+    <p style="color:var(--muted);margin-bottom:1.5rem;">
+      На схемах показано два різні тахеометри: SOKKIA SET 630 (блакитний) та CX-55 (зелений).
+      У кожному режимі потрібно знайти зазначену деталь, клікнувши на відповідне місце схеми.
+    </p>
+  </div>
+
+  <div class="modes">
+    <div class="mode-card" onclick="startGame('set630')">
+      <h3>🔷 SET 630</h3>
+      <p>Тренування на схемі тахеометра SOKKIA SET 630. Знайдіть деталь кліком на схемі.</p>
+    </div>
+    <div class="mode-card" onclick="startGame('cx55')">
+      <h3>🟢 CX-55</h3>
+      <p>Тренування на схемі тахеометра CX-55. Знайдіть деталь кліком на схемі.</p>
+    </div>
+    <div class="mode-card" onclick="startGame('mixed')">
+      <h3>🎲 Змішаний</h3>
+      <p>Випадково з'являється схема SET 630 або CX-55. Уважно дивіться на прилад!</p>
+    </div>
+    <div class="mode-card" onclick="startGame('timed')">
+      <h3>⏱️ На час</h3>
+      <p>20 питань за 3 хвилини на обох схемах. Автоперехід після відповіді.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 Як тренуватися</h2>
+    <ol style="padding-left:1.5rem;line-height:2;">
+      <li>Оберіть режим: SET 630, CX-55, Змішаний або На час.</li>
+      <li>Прочитайте назву деталі у верхньому блоці питання.</li>
+      <li>Клікніть на те місце схеми, де, на вашу думку, знаходиться ця деталь.</li>
+      <li>Система покаже, чи правильно ви вказали місце (зелена точка) чи ні (червона + правильна відповідь).</li>
+      <li>Після завершення побачите результат та список помилок для повторення.</li>
+      <li>Скористайтеся розділом <strong>«Довідник»</strong>, щоб підготуватися.</li>
+    </ol>
+    <p style="margin-top:1rem;color:var(--muted);">
+      💡 <strong>Порада:</strong> Зверніть увагу на колір приладу — SET 630 <strong>блакитний</strong>, CX-55 <strong>зелений</strong>. Це допоможе у змішаному режимі.
+    </p>
+  </div>
+</section>
+
+<!-- ===================== ТЕОРІЯ ===================== -->
+<section id="theory" class="section hidden">
+  <div class="card"><h2>Мета роботи</h2><p>Вивчити призначення та будову електронного тахеометра «SOKKIA SET 630». Навчитися виконувати підготовку тахеометра до роботи.</p></div>
+  <div class="card">
+    <h2>Призначення тахеометра</h2>
+    <p>Тахеометри — це геодезичні прилади, призначені для вимірювання відстаней, перевищень, горизонтальних і вертикальних кутів. Поєднання цих функцій істотно прискорює процес вимірювань. Електронні тахеометри серії SET 630 мають повний комплект вбудованих програм для зйомки, запису даних і установочних параметрів.</p>
+  </div>
+  <div class="card">
+    <h2>Типи та принципи дії тахеометрів</h2>
+    <p><strong>За типом далекоміра:</strong> оптико-механічні, електронно-оптичні, електронні, реєструвальні.</p>
+    <p><strong>За способом вимірювання відстаней:</strong> відбивні (потребують призми) та безвідбивні (більшість сучасних).</p>
+    <p><strong>За механізмом обертання:</strong> механічні (наведення вручну) та сервопривідні (автоматичне обертання).</p>
+    <p><strong>Лазерні далекоміри:</strong> фазові (за різницею фаз променя) та імпульсні (за часом проходження).</p>
+  </div>
+  <div class="card">
+    <h2>Точність вимірювань</h2>
+    <ul style="padding-left:1.5rem;">
+      <li>Кутові виміри: до 0,5 кутової секунди</li>
+      <li>Лінійні виміри (відбивний): до 0,5–1 мм + 1 мм/км</li>
+      <li>Лінійні виміри (безвідбивний): до 1 мм + 1 мм/км</li>
+      <li>Максимальна дальність із призмою: до 5 км</li>
+      <li>Максимальна дальність без відбивача: до 1 км</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Підготовка тахеометра до роботи</h2>
+    <ol style="padding-left:1.5rem;line-height:2;">
+      <li>Під час зберігання зорова труба має бути вертикально (об'єктивом до трегера), з кришкою на об'єктиві.</li>
+      <li>Встановіть штатив, надійно закріпивши ніжки.</li>
+      <li>Встановіть прилад на штатив і закріпіть становим гвинтом.</li>
+      <li>Дати приладу час адаптуватися до температури навколишнього середовища.</li>
+      <li>Грубо відгоризонтуйте та відцентруйте прилад над точкою гвинтами ніжок штатива.</li>
+      <li>Відгоризонтуйте прилад за круглим рівнем.</li>
+      <li>Гвинтами А та В приведіть пузирчик круглого рівня перпендикулярно лінії А–В.</li>
+      <li>Гвинтом С приведіть пузирчик у нуль-пункт (центр).</li>
+      <li>Точне горизонтування: циліндричний рівень паралельно А–В → гвинти А та В → поворот на 90° → гвинт С → перевірка.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h2>Фокусування та наведення на ціль</h2>
+    <ol style="padding-left:1.5rem;line-height:2;">
+      <li>Наведіть зорову трубу на світлу поверхню (небо або аркуш паперу).</li>
+      <li>Фокусувальним кільцем отримайте чітке зображення сітки ниток.</li>
+      <li>Наведіть на ціль за видошукачем.</li>
+      <li>Сфокусуйте зображення цілі та точно наведіть на марку гвинтами ГК та ВК.</li>
+      <li>Усуньте паралакс повторним фокусуванням.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h2>Різниця між тахеометром і теодолітом</h2>
+    <table class="parts-table">
+      <tr><th>Характеристика</th><th>Теодоліт</th><th>Тахеометр</th></tr>
+      <tr><td>Призначення</td><td>Вимірювання кутів</td><td>Кути, відстані, перевищення</td></tr>
+      <tr><td>Далекомір</td><td>Немає (або стадіометричний)</td><td>Вбудований електронний</td></tr>
+      <tr><td>Реєстрація</td><td>Вручну</td><td>Автоматична пам'ять</td></tr>
+      <tr><td>Обчислення</td><td>Вручну</td><td>Автоматичні</td></tr>
+      <tr><td>Продуктивність</td><td>Нижча</td><td>Вища</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ===================== ДОВІДНИК ===================== -->
+<section id="reference" class="section hidden">
+  <div class="card" style="text-align:center;">
+    <h2>📖 Довідник деталей</h2>
+    <p style="color:var(--muted);">Вивчіть деталі обох тахеометрів перед тестом</p>
+  </div>
+
+  <div class="card">
+    <h2>🔷 SOKKIA SET 630 — схема</h2>
+    <div class="scheme-box" id="ref-scheme-set630">
+      <img src="scheme_set630.png" alt="SOKKIA SET 630" id="ref-img-set630">
+    </div>
+    <table class="parts-table" id="table-set630"></table>
+  </div>
+
+  <div class="card">
+    <h2>🟢 CX-55 — схема</h2>
+    <div class="scheme-box" id="ref-scheme-cx55">
+      <img src="scheme_cx55.png" alt="CX-55" id="ref-img-cx55">
+    </div>
+    <table class="parts-table" id="table-cx55"></table>
+  </div>
+</section>
+
+<!-- ===================== ІГРА ===================== -->
+<section id="game" class="section hidden">
+  <div class="card">
+    <div class="game-header">
+      <div>
+        <h2 id="game-title">Режим гри</h2>
+      </div>
+      <button class="btn btn-danger" onclick="exitGame()">✕ Завершити</button>
+    </div>
+
+    <div class="game-header" style="margin-top:0.5rem;">
+      <span class="score-badge" id="game-progress">Питання 1 / 15</span>
+      <span class="score-badge" id="game-score">Рахунок: 0</span>
+      <span class="score-badge hidden" id="game-timer" style="background:#fed7d7;color:#742a2a;">3:00</span>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="game-progress-bar" style="width:0%"></div></div>
+
+    <div class="question-box">
+      <h3>Знайдіть на схемі: <strong id="question-text">...</strong>
+        <span class="instrument-tag" id="instrument-tag">SET 630</span>
+      </h3>
+    </div>
+
+    <div class="text-center">
+      <span class="click-hint">👆 Клікніть на відповідне місце схеми</span>
+    </div>
+
+    <div class="scheme-box" id="game-scheme-box">
+      <img src="" alt="Схема тахеометра" id="game-scheme-img">
+      <div class="scheme-click-layer" id="click-layer" onclick="handleSchemeClick(event)"></div>
+      <div class="scheme-marker" id="marker-user"></div>
+      <div id="answer-markers"></div>
+    </div>
+
+    <div id="game-feedback"></div>
+  </div>
+</section>
+
+<!-- ===================== РЕЗУЛЬТАТИ ===================== -->
+<section id="results" class="section hidden">
+  <div class="card">
+    <h2>📊 Результати</h2>
+    <div id="results-container"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>Тренажер для лабораторної роботи №5 — Тахеометри SOKKIA SET 630 та CX-55</p>
+  <p style="margin-top:0.5rem;opacity:0.7;">Готовий до публікації на GitHub Pages</p>
+</footer>
+
+<script>
+// ===================== ДАНІ =====================
+// pts — точки (у % від ширини та висоти картинки), де закінчуються виноски на схемі.
+// Якщо деталь показана на обох видах приладу — точок дві, зараховується будь-яка.
+const SET630_PARTS = [
+  { name: "Паз для встановлення бусолі", pts: [[18.6,14.4],[79.9,14.4]] },
+  { name: "Ручка", pts: [[34.5,16.6],[69.1,15.3]] },
+  { name: "Закріпний гвинт ручки", pts: [[70.6,23.3],[80.0,21.8]] },
+  { name: "Об'єктив", pts: [[85.5,33.0]] },
+  { name: "Приціл", pts: [[25.9,49.7]] },
+  { name: "Фокусуюче кільце зорової труби", pts: [[64.5,41.8]] },
+  { name: "Окуляр та фокусуюче кільце сітки ниток зорової труби", pts: [[64.5,41.8]] },
+  { name: "Мітка висоти приладу", pts: [[67.5,42.2]] },
+  { name: "Слот для батареї", pts: [[14.1,49.2]] },
+  { name: "Гвинт циліндричного рівня", pts: [[22.6,58.6]] },
+  { name: "Циліндричний рівень", pts: [[26.9,59.2]] },
+  { name: "Дисплей", pts: [[26.2,65.7]] },
+  { name: "Робоча панель", pts: [[33.2,70.7]] },
+  { name: "Навідний та закріпний гвинти ВК", pts: [[37.5,50.7],[63.6,50.7]] },
+  { name: "Навідний гвинт ГК", pts: [[60.3,68.6]] },
+  { name: "Закріпний гвинт ГК", pts: [[42.7,68.6]] },
+  { name: "Оптичний центрир", pts: [[72.6,71.8]] },
+  { name: "Підйомні гвинти", pts: [[36.3,84.5],[66.1,77.8]] },
+  { name: "Підставка трегера", pts: [[35.3,89.0],[69.1,85.4]] },
+  { name: "Фіксатор трегера", pts: [[82.8,79.8]] },
+  { name: "Круглий рівень", pts: [[73.0,82.3]] },
+  { name: "Роз'єм вводу/виводу даних", pts: [[85.8,60.2]] }
+];
+
+const CX55_PARTS = [
+  { name: "Паз для встановлення бусолі", pts: [[14.6,8.7],[81.7,14.4]] },
+  { name: "Ручка", pts: [[26.3,12.3],[73.2,14.4]] },
+  { name: "Фокусуюче кільце зорової труби", pts: [[30.1,27.6]] },
+  { name: "Окуляр та фокусуюче кільце сітки ниток зорової труби", pts: [[28.7,33.0]] },
+  { name: "Об'єктив", pts: [[81.7,31.6]] },
+  { name: "Навідний та закріпний гвинти ВК", pts: [[34.4,44.8]] },
+  { name: "Приціл", pts: [[24.1,49.1],[72.7,49.1]] },
+  { name: "Кнопка живлення", pts: [[62.9,54.8]] },
+  { name: "Оптичний центрир", pts: [[65.5,58.0]] },
+  { name: "Роз'єм вводу/виводу даних", pts: [[87.7,61.8]] },
+  { name: "Круглий рівень", pts: [[83.3,77.0]] },
+  { name: "Навідний та закріпний гвинти ГК", pts: [[37.7,65.6],[61.0,64.5]] },
+  { name: "Дисплей", pts: [[24.9,64.3]] },
+  { name: "Робоча панель", pts: [[35.3,72.1]] },
+  { name: "Фіксатор трегера", pts: [[27.3,84.0],[76.4,80.1]] },
+  { name: "Підйомні гвинти", pts: [[33.6,86.0],[66.4,86.0]] },
+  { name: "Підставка трегера", pts: [[27.5,91.0],[67.9,90.7]] },
+  { name: "Мітка висоти приладу", pts: [[15.5,32.8]] },
+  { name: "Слот для батареї", pts: [[10.3,65.3]] }
+];
+
+// Допуск кліку: частка від ширини картинки
+const HIT_RADIUS = 0.06;
+
+const INSTRUMENTS = {
+  set630: { name: "SOKKIA SET 630", color: "#2b6cb0", label: "SET 630", image: "scheme_set6300.png", parts: SET630_PARTS },
+  cx55:   { name: "CX-55", color: "#38a169", label: "CX-55", image: "scheme_cx550.png", parts: CX55_PARTS }
+};
+
+// ===================== СТАН =====================
+let gameMode = null;
+let currentQ = 0;
+let score = 0;
+let questions = [];
+let wrongAnswers = [];
+let timerInterval = null;
+let timeLeft = 0;
+let canClick = true;
+
+// ===================== НАВІГАЦІЯ =====================
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  const navId = 'nav-' + (id === 'menu' ? 'menu' : id === 'theory' ? 'theory' : id === 'reference' ? 'ref' : 'menu');
+  const el = document.getElementById(navId);
+  if (el) el.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===================== ДОВІДНИК =====================
+function renderReference() {
+  ['set630', 'cx55'].forEach(key => {
+    const inst = INSTRUMENTS[key];
+    const tbody = inst.parts.map((p, i) =>
+      `<tr><td>${i+1}</td><td>${p.name}</td></tr>`
+    ).join('');
+    document.getElementById('table-' + key).innerHTML =
+      `<tr><th>№</th><th>Назва деталі</th></tr>${tbody}`;
+  });
+}
+
+// ===================== ІГРА =====================
+function startGame(mode) {
+  gameMode = mode;
+  currentQ = 0;
+  score = 0;
+  wrongAnswers = [];
+  canClick = true;
+
+  // Формуємо питання
+  if (mode === 'set630') {
+    questions = shuffle([...SET630_PARTS]).slice(0, 15).map(p => ({ ...p, instrument: 'set630' }));
+  } else if (mode === 'cx55') {
+    questions = shuffle([...CX55_PARTS]).slice(0, 15).map(p => ({ ...p, instrument: 'cx55' }));
+  } else if (mode === 'mixed') {
+    const setQ = shuffle([...SET630_PARTS]).slice(0, 8).map(p => ({ ...p, instrument: 'set630' }));
+    const cxQ = shuffle([...CX55_PARTS]).slice(0, 7).map(p => ({ ...p, instrument: 'cx55' }));
+    questions = shuffle([...setQ, ...cxQ]);
+  } else if (mode === 'timed') {
+    const setQ = shuffle([...SET630_PARTS]).slice(0, 10).map(p => ({ ...p, instrument: 'set630' }));
+    const cxQ = shuffle([...CX55_PARTS]).slice(0, 10).map(p => ({ ...p, instrument: 'cx55' }));
+    questions = shuffle([...setQ, ...cxQ]);
+    timeLeft = 180; // 3 хвилини
+  }
+
+  // Заголовок
+  const titles = { set630: '🔷 SET 630', cx55: '🟢 CX-55', mixed: '🎲 Змішаний', timed: '⏱️ На час' };
+  document.getElementById('game-title').textContent = titles[mode];
+
+  // Таймер
+  const timerEl = document.getElementById('game-timer');
+  if (mode === 'timed') {
+    timerEl.classList.remove('hidden');
+    startTimer();
+  } else {
+    timerEl.classList.add('hidden');
+  }
+
+  showSection('game');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  canClick = true;
+  const q = questions[currentQ];
+  const inst = INSTRUMENTS[q.instrument];
+
+  // Оновлюємо індикатори
+  document.getElementById('game-progress').textContent = `Питання ${currentQ + 1} / ${questions.length}`;
+  document.getElementById('game-score').textContent = `Рахунок: ${score}`;
+  document.getElementById('game-progress-bar').style.width = `${(currentQ / questions.length * 100)}%`;
+
+  // Питання
+  document.getElementById('question-text').textContent = q.name;
+  const tag = document.getElementById('instrument-tag');
+  tag.textContent = inst.label;
+  tag.style.background = inst.color;
+
+  // Схема
+  const img = document.getElementById('game-scheme-img');
+  img.src = inst.image;
+  img.alt = inst.name;
+
+  // Скидаємо маркери
+  document.getElementById('marker-user').className = 'scheme-marker';
+  document.getElementById('answer-markers').innerHTML = '';
+  document.getElementById('game-feedback').innerHTML = '';
+}
+
+function handleSchemeClick(event) {
+  if (!canClick) return;
+
+  const q = questions[currentQ];
+  const inst = INSTRUMENTS[q.instrument];
+
+  // Координати кліку відносно зображення (рамка схеми збігається з картинкою)
+  const rect = document.getElementById('game-scheme-img').getBoundingClientRect();
+  const clickX = ((event.clientX - rect.left) / rect.width) * 100;
+  const clickY = ((event.clientY - rect.top) / rect.height) * 100;
+
+  // Відстань у пікселях до найближчої правильної точки
+  const dist = Math.min(...q.pts.map(([x, y]) =>
+    Math.hypot((clickX - x) / 100 * rect.width, (clickY - y) / 100 * rect.height)));
+  const correct = dist <= HIT_RADIUS * rect.width;
+
+  // Показуємо маркер кліку
+  const userMarker = document.getElementById('marker-user');
+  userMarker.style.left = clickX + '%';
+  userMarker.style.top = clickY + '%';
+  userMarker.classList.add('show', correct ? 'correct' : 'wrong');
+
+  const feedback = document.getElementById('game-feedback');
+
+  if (correct) {
+    score++;
+    feedback.innerHTML = `<div class="feedback correct">✅ Правильно! Це дійсно — ${q.name}</div>`;
+  } else {
+    const box = document.getElementById('answer-markers');
+    q.pts.forEach(([x, y]) => {
+      const m = document.createElement('div');
+      m.className = 'scheme-marker answer';
+      m.style.left = x + '%';
+      m.style.top = y + '%';
+      box.appendChild(m);
+      requestAnimationFrame(() => m.classList.add('show'));
+    });
+    wrongAnswers.push({
+      question: q.name,
+      instrument: inst.label
+    });
+    feedback.innerHTML = `<div class="feedback wrong">❌ Неправильно. Правильне місце позначено зеленим контуром.<br><strong>${q.name}</strong></div>`;
+  }
+
+  canClick = false;
+
+  // Кнопка "Далі" або автоперехід
+  if (gameMode === 'timed') {
+    feedback.innerHTML += `<p style="text-align:center;color:var(--muted);font-size:0.9rem;">Наступне питання через 1,5 с...</p>`;
+    setTimeout(nextQuestion, 1500);
+  } else {
+    feedback.innerHTML += `
+      <div class="text-center mt-1">
+        <button class="btn btn-primary" onclick="nextQuestion()">Далі →</button>
+      </div>
+    `;
+  }
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= questions.length) {
+    if (timerInterval) clearInterval(timerInterval);
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+function exitGame() {
+  if (timerInterval) clearInterval(timerInterval);
+  showSection('menu');
+}
+
+function startTimer() {
+  const timerEl = document.getElementById('game-timer');
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+    timerEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      showResults();
+    }
+  }, 1000);
+}
+
+// ===================== РЕЗУЛЬТАТИ =====================
+function showResults() {
+  if (timerInterval) clearInterval(timerInterval);
+  showSection('results');
+
+  const pct = questions.length ? Math.round((score / questions.length) * 100) : 0;
+  let message = '', color = '';
+  if (pct >= 90) { message = 'Відмінно! 🎉'; color = 'var(--success)'; }
+  else if (pct >= 75) { message = 'Добре! 👍'; color = 'var(--accent)'; }
+  else if (pct >= 60) { message = 'Задовільно. Можна ще потренуватися.'; color = 'var(--warning)'; }
+  else { message = 'Потрібно ще попрацювати! 📚'; color = 'var(--danger)'; }
+
+  const mistakesHtml = wrongAnswers.length
+    ? `<div class="card" style="margin-top:1.5rem;text-align:left;">
+        <h2>Помилки (${wrongAnswers.length})</h2>
+        <table class="parts-table">
+          <tr><th>Деталь</th><th>Прилад</th></tr>
+          ${wrongAnswers.map(w => `
+            <tr><td>${w.question}</td><td>${w.instrument}</td></tr>
+          `).join('')}
+        </table>
+       </div>`
+    : '';
+
+  document.getElementById('results-container').innerHTML = `
+    <div class="results">
+      <div class="big-score" style="color:${color}">${score} / ${questions.length}</div>
+      <p style="font-size:1.2rem;margin:1rem 0;">${message}</p>
+      <p style="color:var(--muted);margin-bottom:1.5rem;">Результат: ${pct}%</p>
+      <button class="btn btn-primary" onclick="showSection('menu')">← До меню</button>
+      <button class="btn btn-success" onclick="startGame(gameMode)" style="margin-left:0.5rem;">🔄 Повторити</button>
+    </div>
+    ${mistakesHtml}
+  `;
+}
+
+// ===================== УТИЛІТИ =====================
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ===================== ІНІЦІАЛІЗАЦІЯ =====================
+document.addEventListener('DOMContentLoaded', () => {
+  renderReference();
+});
+</script>
+
+</body>
+</html>
